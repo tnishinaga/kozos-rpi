@@ -32,8 +32,8 @@ static int kzmem_init_pool(kzmem_pool *p)
   int i;
   kzmem_block *mp;
   kzmem_block **mpp;
-  extern char freearea; /* リンカ・スクリプトで定義される空き領域 */
-  static char *area = &freearea;
+  extern char _freearea; /* リンカ・スクリプトで定義される空き領域 */
+  static char *area = &_freearea;
 
   mp = (kzmem_block *)area;
 

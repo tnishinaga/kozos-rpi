@@ -1,5 +1,5 @@
-PREFIX  = /usr/local
-ARCH    = h8300-elf
+PREFIX  = /usr/
+ARCH    = arm-none-eabi
 BINDIR  = $(PREFIX)/bin
 ADDNAME = $(ARCH)-
 
@@ -21,7 +21,7 @@ OBJS += kozos.o syscall.o memory.o consdrv.o command.o
 
 TARGET = kozos
 
-CFLAGS = -Wall -mh -nostdinc -nostdlib -fno-builtin
+CFLAGS = -Wall -nostdinc -nostdlib -fno-builtin
 #CFLAGS += -mint32 # intを32ビットにすると掛算／割算ができなくなる
 CFLAGS += -I.
 #CFLAGS += -g

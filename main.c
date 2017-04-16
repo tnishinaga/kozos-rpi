@@ -12,7 +12,9 @@ static int start_threads(int argc, char *argv[])
   kz_chpri(15); /* 優先順位を下げて，アイドルスレッドに移行する */
   INTR_ENABLE; /* 割込み有効にする */
   while (1) {
-    asm volatile ("sleep"); /* 省電力モードに移行 */
+    // TODO: ARM対応
+    // asm volatile ("sleep"); /* 省電力モードに移行 */
+    asm volatile ("nop"); /* 省電力モードに移行 */
   }
 
   return 0;
