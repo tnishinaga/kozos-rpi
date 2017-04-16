@@ -1,0 +1,6 @@
+.vscode
+*.o
+*.disas
+*.elf
+*.img
+*.d
