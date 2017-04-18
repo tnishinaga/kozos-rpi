@@ -2,6 +2,16 @@
 #include "intr.h"
 #include "interrupt.h"
 
+void IRQ_Handler(void)
+{
+  return;
+}
+
+void SVC_Handler(void)
+{
+  return;
+}
+
 /* ソフトウエア・割込みベクタの初期化 */
 int softvec_init(void)
 {

@@ -13,7 +13,7 @@ OBJDUMP = $(BINDIR)/$(ADDNAME)objdump
 RANLIB  = $(BINDIR)/$(ADDNAME)ranlib
 STRIP   = $(BINDIR)/$(ADDNAME)strip
 
-OBJS  = startup.o main.o interrupt.o
+OBJS  = startup.o main.o interrupt.o vector.o interrupt_handler.o
 OBJS += lib.o serial.o
 
 # sources of kozos
