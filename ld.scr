@@ -3,12 +3,15 @@ ENTRY("_start")
 
 MEMORY
 {
-	ramall(rwx)	: o = 0x00000000, l = 0x004000 /* 16KB */
-	softvec(rw)	: o = 0x00000000, l = 0x000040 /* top of RAM */
-	ram(rwx)	: o = 0x00008000, l = 0x003f00
-	userstack(rw)	: o = 0x00fff400, l = 0x000000
-	bootstack(rw)	: o = 0x00ffff00, l = 0x000000
-	intrstack(rw)	: o = 0x00ffff00, l = 0x000000 /* end of RAM */
+	/* o: ORIGIN, l:LENGTH */
+	ramall(rwx)	: o = 0x00000000, l = 0x1c000000 /* 512-64MB */
+	softvec(rw)	: o = 0x00000000, l = 0x00000040 /* top of RAM */
+	ram(rwx)	: o = 0x00008000, l = 0x1bff8000 /* entry point(0x8000) - end(0x1c000000) */
+
+	userstack(rw)	: o = 0x19000000, l = 0x00000000 /* fiq - 16MB */
+	/* fiqstack(rw)	: o = 0x1a000000, l = 0x00000000 */ /* irq - 16MB */
+	irqstack(rw)	: o = 0x1b000000, l = 0x00000000 /* svc - 16MB */
+	svcstack(rw)	: o = 0x1c000000, l = 0x00000000 /* end of RAM */
 }
 
 SECTIONS
@@ -55,11 +58,11 @@ SECTIONS
 		_userstack = .;
 	} > userstack
 
-	.bootstack : {
-		_bootstack = .;
-	} > bootstack
+	.irqstack : {
+		_irqstack = .;
+	} > irqstack
 
-	.intrstack : {
-		_intrstack = .;
-	} > intrstack
+	.svcstack : {
+		_svcstack = .;
+	} > svcstack
 }
