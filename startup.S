@@ -1,11 +1,24 @@
-	.section .text
+#define CPSR_MODE_USER      0x10
+#define CPSR_MODE_FIQ       0x11
+#define CPSR_MODE_IRQ       0x12
+#define CPSR_MODE_SVC       0x13
+#define CPSR_MODE_MONITOR   0x16
+#define CPSR_MODE_ABORT     0x17
+#define CPSR_THUMB          1 << 5
+#define CPSR_FIQ            1 << 6
+#define CPSR_IRQ            1 << 7
+#define CPSR_ASYNC_ABORT    1 << 8
+#define CPSR_ENDIAN_BE      1 << 9
+
+
+    .section .text
 	.global	_start
 #	.type	_start,@function
 _start:
     @ jtag setup
 	bl jtag_setup_asm
-	@ set cpu mode
-	@ TODO: write
+	@ disable all interrupt and enter svc mode
+    cpsid aif, #CPSR_MODE_SVC
 	@ set svc stack pointer
 	ldr sp, =_svcstack
 	@ clear BSS
