@@ -26,6 +26,7 @@ CFLAGS = -Wall -nostdinc -nostdlib -fno-builtin
 CFLAGS += -I.
 #CFLAGS += -g
 CFLAGS += -Os
+CFLAGS += -march=armv6kz -mtune=arm1176jzf-s
 CFLAGS += -DKOZOS
 
 LFLAGS = -static -T ld.scr -L.

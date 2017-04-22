@@ -1,69 +1,36 @@
 #include "defines.h"
 #include "serial.h"
-
-#define SERIAL_SCI_NUM 3
-
-#define H8_3069F_SCI0 ((volatile struct h8_3069f_sci *)0xffffb0)
-#define H8_3069F_SCI1 ((volatile struct h8_3069f_sci *)0xffffb8)
-#define H8_3069F_SCI2 ((volatile struct h8_3069f_sci *)0xffffc0)
-
-struct h8_3069f_sci {
-  volatile uint8 smr;
-  volatile uint8 brr;
-  volatile uint8 scr;
-  volatile uint8 tdr;
-  volatile uint8 ssr;
-  volatile uint8 rdr;
-  volatile uint8 scmr;
-};
-
-#define H8_3069F_SCI_SMR_CKS_PER1  (0<<0)
-#define H8_3069F_SCI_SMR_CKS_PER4  (1<<0)
-#define H8_3069F_SCI_SMR_CKS_PER16 (2<<0)
-#define H8_3069F_SCI_SMR_CKS_PER64 (3<<0)
-#define H8_3069F_SCI_SMR_MP     (1<<2)
-#define H8_3069F_SCI_SMR_STOP   (1<<3)
-#define H8_3069F_SCI_SMR_OE     (1<<4)
-#define H8_3069F_SCI_SMR_PE     (1<<5)
-#define H8_3069F_SCI_SMR_CHR    (1<<6)
-#define H8_3069F_SCI_SMR_CA     (1<<7)
-
-#define H8_3069F_SCI_SCR_CKE0   (1<<0)
-#define H8_3069F_SCI_SCR_CKE1   (1<<1)
-#define H8_3069F_SCI_SCR_TEIE   (1<<2)
-#define H8_3069F_SCI_SCR_MPIE   (1<<3)
-#define H8_3069F_SCI_SCR_RE     (1<<4) /* 受信有効 */
-#define H8_3069F_SCI_SCR_TE     (1<<5) /* 送信有効 */
-#define H8_3069F_SCI_SCR_RIE    (1<<6) /* 受信割込み有効 */
-#define H8_3069F_SCI_SCR_TIE    (1<<7) /* 送信割込み有効 */
-
-#define H8_3069F_SCI_SSR_MPBT   (1<<0)
-#define H8_3069F_SCI_SSR_MPB    (1<<1)
-#define H8_3069F_SCI_SSR_TEND   (1<<2)
-#define H8_3069F_SCI_SSR_PER    (1<<3)
-#define H8_3069F_SCI_SSR_FERERS (1<<4)
-#define H8_3069F_SCI_SSR_ORER   (1<<5)
-#define H8_3069F_SCI_SSR_RDRF   (1<<6) /* 受信完了 */
-#define H8_3069F_SCI_SSR_TDRE   (1<<7) /* 送信完了 */
-
-static struct {
-  volatile struct h8_3069f_sci *sci;
-} regs[SERIAL_SCI_NUM] = {
-  { H8_3069F_SCI0 }, 
-  { H8_3069F_SCI1 }, 
-  { H8_3069F_SCI2 }, 
-};
+#include "rpi_peripherals.h"
 
 /* デバイス初期化 */
 int serial_init(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
+  	// UART無効化
+	*UART0_CR 	= 0;
+	
+	//ポートの設定
+	// GPIO14: ALT0
+  // GPIO15: ALT0
+  *GPFSEL1 &= ~((uint32)0x07 << ((14 % 10) * 3));
+  *GPFSEL1 &= ~((uint32)0x07 << ((15 % 10) * 3));
+  *GPFSEL1 |= ((uint32)0x04 << ((14 % 10) * 3));
+  *GPFSEL1 |= ((uint32)0x04 << ((15 % 10) * 3));
 
-  sci->scr = 0;
-  sci->smr = 0;
-  sci->brr = 64; /* 20MHzのクロックから9600bpsを生成(25MHzの場合は80にする) */
-  sci->scr = H8_3069F_SCI_SCR_RE | H8_3069F_SCI_SCR_TE; /* 送受信可能 */
-  sci->ssr = 0;
+  // ボーレートの設定(9600)
+  *UART0_IBRD = 19;
+  *UART0_FBRD = 34;
+
+  // LCRH
+	// stick parity dis, 8bit, FIFO en, two stop bit no, odd parity, parity dis, break no
+	*UART0_LCRH = 0x70;
+
+	// CR
+	// CTS dis, RTS dis, OUT1-2=0, RTS dis, DTR dis, RXE en, TXE en, loop back dis, SIRLP=0, SIREN=0, UARTEN en
+	*UART0_CR 	= 0x0301;
+
+  // UART割り込みを有効化
+  // UARTのIRQ番号は57
+  *INTERRUPT_ENABLE_IRQS2 = ((uint32)1 << (57 % 32));
 
   return 0;
 }
@@ -71,84 +38,67 @@ int serial_init(int index)
 /* 送信可能か？ */
 int serial_is_send_enable(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  return (sci->ssr & H8_3069F_SCI_SSR_TDRE);
+  // check FR:TXFF
+  return (*UART0_FR & (1 << 5)) ? 0:1;
 }
 
 /* １文字送信 */
 int serial_send_byte(int index, unsigned char c)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-
-  /* 送信可能になるまで待つ */
-  while (!serial_is_send_enable(index))
-    ;
-  sci->tdr = c;
-  sci->ssr &= ~H8_3069F_SCI_SSR_TDRE; /* 送信開始 */
-
+  *UART0_DR = c;
   return 0;
 }
 
 /* 受信可能か？ */
 int serial_is_recv_enable(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  return (sci->ssr & H8_3069F_SCI_SSR_RDRF);
+  // check FR:RXFE
+  return (*UART0_FR & (1 << 4)) ? 0:1;
 }
 
 /* １文字受信 */
 unsigned char serial_recv_byte(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  unsigned char c;
-
-  /* 受信文字が来るまで待つ */
-  while (!serial_is_recv_enable(index))
-    ;
-  c = sci->rdr;
-  sci->ssr &= ~H8_3069F_SCI_SSR_RDRF; /* 受信完了 */
-
-  return c;
+  return (*UART0_DR & 0xff);
 }
 
 /* 送信割込み有効か？ */
 int serial_intr_is_send_enable(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  return (sci->scr & H8_3069F_SCI_SCR_TIE) ? 1 : 0;
+  // Raspberry Pi で割り込みを有効にするためには以下の2つを行う必要がある
+  // * IRQレジスタを使ったUART自体の割り込み有効化
+  // * UARTレジスタの割り込みマスク設定
+  // 前者はinit処理時に行うので必要なし
+  // 後者のみを行う
+  return (*UART0_IMSC & ((uint32)1 << 5)) ? 1 : 0;
 }
 
 /* 送信割込み有効化 */
 void serial_intr_send_enable(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  sci->scr |= H8_3069F_SCI_SCR_TIE;
+  *UART0_IMSC |= (uint32)1 << 5;
 }
 
 /* 送信割込み無効化 */
 void serial_intr_send_disable(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  sci->scr &= ~H8_3069F_SCI_SCR_TIE;
+  *UART0_IMSC &= ~((uint32)1 << 5);
 }
 
 /* 受信割込み有効か？ */
 int serial_intr_is_recv_enable(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  return (sci->scr & H8_3069F_SCI_SCR_RIE) ? 1 : 0;
+  return (*UART0_IMSC & ((uint32)1 << 4)) ? 1 : 0;
 }
 
 /* 受信割込み有効化 */
 void serial_intr_recv_enable(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  sci->scr |= H8_3069F_SCI_SCR_RIE;
+  *UART0_IMSC |= (uint32)1 << 4;
 }
 
 /* 受信割込み無効化 */
 void serial_intr_recv_disable(int index)
 {
-  volatile struct h8_3069f_sci *sci = regs[index].sci;
-  sci->scr &= ~H8_3069F_SCI_SCR_RIE;
+  *UART0_IMSC &= ~((uint32)1 << 4);
 }
