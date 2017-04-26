@@ -20,8 +20,7 @@ static int start_threads(int argc, char *argv[])
 
 int main(void)
 {
-  //INTR_DISABLE; /* 割込み無効にする */
-  INTR_ENABLE;
+  INTR_DISABLE; /* 割込み無効にする */
 
   puts("kozos boot succeed!\n");
 

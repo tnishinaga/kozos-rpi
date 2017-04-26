@@ -43,7 +43,6 @@ clear_bss:
 clear_bss_done:
     @ set vector table
     bl set_vector_table
-    svc #0
     @ goto main function
     bl main
 1:
@@ -59,7 +58,7 @@ get_cpsr:
 set_vector_table:
     ldr r0, =Vector_Table
     ldr r1, =Vector_Table_end
-    ldr r2, =_softvec
+    mov r2, #0  @ vector table start address
 1:
     @ if r0 == r1 then goto 1
     cmp r0, r1

@@ -5,9 +5,9 @@ MEMORY
 {
 	/* o: ORIGIN, l:LENGTH */
 	ramall(rwx)	: o = 0x00000000, l = 0x1c000000 /* 512-64MB */
-	softvec(rw)	: o = 0x00000000, l = 0x00000040 /* top of RAM */
 	ram(rwx)	: o = 0x00008000, l = 0x1bff8000 /* entry point(0x8000) - end(0x1c000000) */
 
+	softvec(rw)	: o = 0x1a000000, l = 0x00000040 /* top of RAM */
 	userstack(rw)	: o = 0x1b000000, l = 0x00000000 /* fiq - 16MB */
 	bootstack(rw)	: o = 0x1c000000, l = 0x00000000 /* svc - 16MB */
 	intrstack(rw)	: o = 0x1c000000, l = 0x00000000 /* end of RAM */
@@ -15,10 +15,6 @@ MEMORY
 
 SECTIONS
 {
-	.softvec : {
-		_softvec = .;
-	} > softvec
-
 	.text : {
 		_text_start = . ;
 		*(.text)
@@ -52,6 +48,11 @@ SECTIONS
 	.freearea : {
 		_freearea = .;
 	} > ram
+
+	.softvec : {
+		_softvec = .;
+	} > softvec
+
 
 	.userstack : {
 		_userstack = .;
