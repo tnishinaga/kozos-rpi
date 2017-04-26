@@ -14,8 +14,8 @@ typedef void (*softvec_handler_t)(softvec_type_t type, unsigned long sp);
 // #define INTR_ENABLE  asm volatile ("andc.b #0x3f,ccr")
 // #define INTR_DISABLE asm volatile ("orc.b #0xc0,ccr")
 // TODO: ARM対応
-#define INTR_ENABLE  asm volatile ("nop")
-#define INTR_DISABLE asm volatile ("nop")
+#define INTR_ENABLE  asm volatile ("cpsie i")
+#define INTR_DISABLE asm volatile ("cpsid i")
 
 /* ソフトウエア・割込みベクタの初期化 */
 int softvec_init(void);

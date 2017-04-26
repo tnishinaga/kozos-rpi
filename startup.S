@@ -4,9 +4,11 @@
 #define CPSR_MODE_SVC       0x13
 #define CPSR_MODE_MONITOR   0x16
 #define CPSR_MODE_ABORT     0x17
+#define CPSR_MODE_UNDEFINED 0x1b
+#define CPSR_MODE_SYSTEM    0x1f
 #define CPSR_THUMB          1 << 5
-#define CPSR_FIQ            1 << 6
-#define CPSR_IRQ            1 << 7
+#define CPSR_FIQ_DIS        1 << 6
+#define CPSR_IRQ_DIS        1 << 7
 #define CPSR_ASYNC_ABORT    1 << 8
 #define CPSR_ENDIAN_BE      1 << 9
 
@@ -17,10 +19,12 @@
 _start:
     @ jtag setup
 	bl jtag_setup_asm
-	@ disable all interrupt and enter svc mode
-    cpsid aif, #CPSR_MODE_SVC
-	@ set svc stack pointer
-	ldr sp, =_svcstack
+	@ disable interrupt and enter system mode
+    @ ldr r0, =(CPSR_ASYNC_ABORT | CPSR_IRQ_DIS | CPSR_FIQ_DIS | CPSR_MODE_SYSTEM)
+    @ msr cpsr, r0
+    cpsid aif, #0x1f
+	@ set system stack pointer
+	ldr sp, =_bootstack
 	@ clear BSS
     @ r1: BSS start address
     @ r2: BSS end address
@@ -33,22 +37,39 @@ clear_bss:
     cmp r1, r2
     beq clear_bss_done
     @ write 0 to memory
-    str r3, [r1, #4]!	@ [r0] = r3, r0++
+    str r3, [r1], #4	@ [r0] = r3, r0++
     @ jump to clear_bss
     b clear_bss
 clear_bss_done:
+    @ set vector table
+    bl set_vector_table
+    svc #0
     @ goto main function
     bl main
 1:
 	wfi	@ sleep
 	b	1b
 
-	.global	dispatch
-#	.type	dispatch,@function
-dispatch:
-	bx lr
+.global get_cpsr
+get_cpsr:
+    mrs r0, cpsr
+    bx lr
 
-
+.global set_vector_table
+set_vector_table:
+    ldr r0, =Vector_Table
+    ldr r1, =Vector_Table_end
+    ldr r2, =_softvec
+1:
+    @ if r0 == r1 then goto 1
+    cmp r0, r1
+    beq 2f
+    ldr r3, [r0], #4
+    str r3, [r2], #4
+    @ jump to clear_bss
+    b 1b
+2:
+    bx lr
 
 @@@ JTAG setup @@@
 @ 3.3V			: ARM_VREF

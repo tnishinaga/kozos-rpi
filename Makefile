@@ -24,7 +24,7 @@ TARGET = kozos
 CFLAGS = -Wall -nostdinc -nostdlib -fno-builtin
 #CFLAGS += -mint32 # intを32ビットにすると掛算／割算ができなくなる
 CFLAGS += -I.
-#CFLAGS += -g
+CFLAGS += -g3
 CFLAGS += -Os
 CFLAGS += -march=armv6kz -mtune=arm1176jzf-s
 CFLAGS += -DKOZOS

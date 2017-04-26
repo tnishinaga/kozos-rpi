@@ -20,7 +20,7 @@ typedef struct _kz_thread {
   struct _kz_thread *next;
   char name[THREAD_NAME_SIZE + 1]; /* スレッド名 */
   int priority;   /* 優先度 */
-  char *stack;    /* スタック */
+  uint32 *stack;    /* スタック */
   uint32 flags;   /* 各種フラグ */
 #define KZ_THREAD_FLAG_READY (1 << 0)
 
@@ -42,7 +42,7 @@ typedef struct _kz_thread {
 typedef struct _kz_msgbuf {
   struct _kz_msgbuf *next;
   kz_thread *sender; /* メッセージを送信したスレッド */
-  struct { /* メッセージのパラメータ保存領域 */
+  struct { /* メッセージのパラメータ保存領域 char*/
     int size;
     char *p;
   } param;
@@ -137,6 +137,8 @@ static void thread_init(kz_thread *thp)
   thread_end();
 }
 
+static int thread_exit(void);
+
 /* システム・コールの処理(kz_run():スレッドの起動) */
 static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority,
 				 int stacksize, int argc, char *argv[])
@@ -174,28 +176,41 @@ static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority,
 
   thp->stack = thread_stack; /* スタックを設定 */
 
+
+  // ARM版のスレッドコンテキスト
+  // TODO: lkの実装を参考にいい感じにする
+  typedef struct {
+    volatile uint32 sp;
+    volatile uint32 lr;
+    volatile uint32 spsr;
+    volatile uint32 r[13];
+    volatile uint32 pc;
+  } kz_arm_context;
   /* スタックの初期化 */
-  sp = (uint32 *)thp->stack;
-  *(--sp) = (uint32)thread_end;
+  // TODO: RasPi対応スタック形式にする
+  // sp = (uint32 *)thp->stack;
+  // *(--sp) = (uint32)thread_end;
+  kz_arm_context *thc = (kz_arm_context *)((thp->stack - sizeof(kz_arm_context)));
+  
+  thc->lr = (volatile uint32)thread_end;
+  thc->sp = thp->stack;
+  thc->spsr = 0x0000001f;
+
+  for (int i = 0; i < 13; i++) {
+    thc->r[i] = 0;
+  }
 
   /*
    * プログラム・カウンタを設定する．
    * スレッドの優先度がゼロの場合には，割込み禁止スレッドとする．
    */
-  *(--sp) = (uint32)thread_init | ((uint32)(priority ? 0 : 0xc0) << 24);
-
-  *(--sp) = 0; /* ER6 */
-  *(--sp) = 0; /* ER5 */
-  *(--sp) = 0; /* ER4 */
-  *(--sp) = 0; /* ER3 */
-  *(--sp) = 0; /* ER2 */
-  *(--sp) = 0; /* ER1 */
+  thc->pc = (volatile uint32)thread_init;
 
   /* スレッドのスタート・アップ(thread_init())に渡す引数 */
-  *(--sp) = (uint32)thp;  /* ER0 */
+  thc->r[0] = (volatile uint32)thp;
 
   /* スレッドのコンテキストを設定 */
-  thp->context.sp = (uint32)sp;
+  thp->context.sp = (uint32)thc;
 
   /* システム・コールを呼び出したスレッドをレディー・キューに戻す */
   putcurrent();
@@ -569,7 +584,7 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param)
   current->syscall.param = param;
   // asm volatile ("trapa #0"); /* トラップ割込み発行 */
   // TODO: ARM対応
-  asm volatile ("nop"); /* トラップ割込み発行 */
+  asm volatile ("svc #0"); /* トラップ割込み発行 */
 }
 
 /* サービス・コール呼び出し用ライブラリ関数 */
