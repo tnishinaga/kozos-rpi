@@ -35,7 +35,7 @@ _start:
 clear_bss:
     @ if r1 == r2 then goto clear_bss_done
     cmp r1, r2
-    beq clear_bss_done
+    bpl clear_bss_done
     @ write 0 to memory
     str r3, [r1], #4	@ [r0] = r3, r0++
     @ jump to clear_bss
