@@ -16,13 +16,16 @@ int serial_init(int index)
   *GPFSEL1 |= ((uint32)0x04 << ((14 % 10) * 3));
   *GPFSEL1 |= ((uint32)0x04 << ((15 % 10) * 3));
 
+  // 割り込みフラグのクリア
+  *UART0_ICR = 0x7ff;
+
   // ボーレートの設定(9600)
   *UART0_IBRD = 19;
   *UART0_FBRD = 34;
 
   // LCRH
 	// stick parity dis, 8bit, FIFO en, two stop bit no, odd parity, parity dis, break no
-	*UART0_LCRH = 0x70;
+	*UART0_LCRH = 3 << 5;
 
 	// CR
 	// CTS dis, RTS dis, OUT1-2=0, RTS dis, DTR dis, RXE en, TXE en, loop back dis, SIRLP=0, SIREN=0, UARTEN en
