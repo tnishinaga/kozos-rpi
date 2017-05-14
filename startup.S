@@ -43,6 +43,14 @@ clear_bss:
 clear_bss_done:
     @ set vector table
     bl set_vector_table
+
+    @ disable all IRQ source
+    ldr r0, =0x2000B21C
+    mvn r1, #0
+    str r1, [r0], #4 @ IRQs 1
+    str r1, [r0], #4 @ IRQs 2
+    strb r1, [r0]    @ Basic IRQs
+
     @ goto main function
     bl main
 1:
