@@ -1,6 +1,10 @@
 #ifndef RPILIB_PERIPHERALS_H
 #define RPILIB_PERIPHERALS_H
 
+#include "defines.h"
+
+#define RPI_CORE_CLOCK  250000000 // 250MHz
+
 #define PHY_PERI_ADDR(x) (0x20000000 + (x))
 
 // GPIO Peripheral
