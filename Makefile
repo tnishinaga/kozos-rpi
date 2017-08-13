@@ -34,13 +34,15 @@ LFLAGS = -static -T ld.scr -L.
 .SUFFIXES: .c .o
 .SUFFIXES: .s .o
 .SUFFIXES: .S .o
+.SUFFIXES: .elf .bin
 
-all :		$(TARGET)
+all : $(TARGET).bin
 
-$(TARGET) :	$(OBJS)
-		$(CC) $(OBJS) -o $(TARGET) $(CFLAGS) $(LFLAGS)
-		cp $(TARGET) $(TARGET).elf
-		$(STRIP) $(TARGET)
+$(TARGET).elf :	$(OBJS)
+		$(CC) $(OBJS) -o $@ $(CFLAGS) $(LFLAGS)
+
+.elf.bin:
+	$(OBJCOPY) -O binary $< $@
 
 .c.o :		$<
 		$(CC) -c $(CFLAGS) $<
