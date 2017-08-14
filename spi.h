@@ -35,5 +35,23 @@
 void spi_clock_div(uint16 clock_div);
 int spi_start(int cs, int mode);
 int spi_write(uint8 data);
-uint8 spi_read(void);
 int spi_end(void);
+
+
+static inline int bad_cs_range(int cs)
+{
+    if (cs < 0 || 2 < cs) {
+        // bad cs number
+        return 1;
+    }
+    return 0;
+}
+
+static inline int bad_mode_range(int mode)
+{
+    if (mode < 0 || 2 < mode) {
+        // bad mode number
+        return -1;
+    }
+    return 0;
+}

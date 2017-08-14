@@ -1,14 +1,5 @@
 #include "spi.h"
 
-static inline int bad_cs_range(int cs)
-{
-    if (cs < 0 || 2 < cs) {
-        // bad cs number
-        return 1;
-    }
-    return 0;
-}
-
 static inline int spi_init(int cs)
 {
     // set gpio mode to spi
@@ -44,7 +35,7 @@ void spi_clock_div(uint16 clock_div)
 
 int spi_start(int cs, int mode)
 {
-    if (mode < 0 || 2 < mode) {
+    if (bad_mode_range(mode)) {
         // bad mode number
         return -1;
     }
@@ -72,6 +63,14 @@ int spi_start(int cs, int mode)
     return 0;
 }
 
+static inline uint8 spi_read(void)
+{
+    // wait until data received
+    while(!(*SPI0_CS & SPI0_CS_RXD));
+    // return read data
+    return *SPI0_FIFO;
+}
+
 int spi_write(uint8 data)
 {
     // wait until buffer can accept data
@@ -80,16 +79,9 @@ int spi_write(uint8 data)
     *SPI0_FIFO = data;
     // wait until transfar done
     while(!(*SPI0_CS & SPI0_CS_DONE));
-    // return write bytes
-    return 1;
-}
-
-uint8 spi_read(void)
-{
-    // wait until data received
-    while(!(*SPI0_CS & SPI0_CS_RXD));
-    // return read data
-    return *SPI0_FIFO;
+    
+    // return recieved data
+    return spi_read();
 }
 
 
